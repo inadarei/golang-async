@@ -16,6 +16,7 @@ func main() {
 	//var authors []string
 	const isbn = "1491956224" // "Microservice Architecture"
 	authors := bookAuthors(isbn)
+	fmt.Println("Authors: %v", authors)
 
 	var wg sync.WaitGroup
 	wg.Add(len(authors))
@@ -36,6 +37,7 @@ func main() {
 func bookAuthors(isbn string) []string {
 	bookURL := baseURL + "isbn:" + isbn
 
+	fmt.Println(bookURL)
 	res, err := http.Get(bookURL)
 	if err != nil {
 		panic(err.Error())
