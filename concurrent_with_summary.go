@@ -22,10 +22,10 @@ func main() {
 	wg.Add(len(authors))
 
 	for _, author := range authors {
-		go func(author string) {
+		go func(anAuthor string) {
 			defer wg.Done()
 
-			numBooks, authorName := authorNumBooks(author)
+			numBooks, authorName := authorNumBooks(anAuthor)
 			fmt.Printf("%s authored %d books \n", authorName, numBooks)
 		}(author)
 	}
