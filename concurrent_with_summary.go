@@ -13,10 +13,16 @@ import (
 const baseURL = "https://www.googleapis.com/books/v1/volumes?q="
 
 func main() {
-	//var authors []string
+	type PublishRecord struct {
+		author string
+		count  int
+	}
+	var record PublishRecord
+	var records = []PublishRecord{}
+
 	const isbn = "1491956224" // "Microservice Architecture"
 	authors := bookAuthors(isbn)
-	fmt.Println("Authors: %v", authors)
+	// fmt.Println("Authors: %v", authors)
 
 	var wg sync.WaitGroup
 	wg.Add(len(authors))
@@ -26,18 +32,21 @@ func main() {
 			defer wg.Done()
 
 			numBooks, authorName := authorNumBooks(anAuthor)
-			fmt.Printf("%s authored %d books \n", authorName, numBooks)
+			record.author = authorName
+			record.count = numBooks
+			records = append(records, record)
 		}(author)
 	}
 
 	wg.Wait()
+
+	fmt.Printf("Publishing records: %v \n", records)
 }
 
 /* bookAuthors returns all authors of a book */
 func bookAuthors(isbn string) []string {
 	bookURL := baseURL + "isbn:" + isbn
 
-	fmt.Println(bookURL)
 	res, err := http.Get(bookURL)
 	if err != nil {
 		panic(err.Error())
