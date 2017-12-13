@@ -59,7 +59,7 @@ func bookAuthors(isbn string) []string {
 	return authors
 }
 
-/* authorBooks returns books an author has published */
+/* authorNumBooks returns number of books an author has published */
 func authorNumBooks(authorName string) (int, string) {
 	authorNameSafe := url.QueryEscape(authorName)
 	apiURL := baseURL + "inauthor:\"" + authorNameSafe + "\""
