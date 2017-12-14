@@ -15,15 +15,17 @@ const baseURL = "https://www.googleapis.com/books/v1/volumes?q="
 
 type fnBytes func([]byte)
 
+/** Query authors of a book. Concurrently query how many books each one of them
+have published. Display final scoreboards, once all the results are in. */
 func main() {
 	defer panicHandler()
 
-	type PublishRecord struct {
+	type AuthorStatistics struct {
 		author string
 		count  int
 	}
-	var record PublishRecord
-	var records = []PublishRecord{}
+	var stats AuthorStatistics
+	var scoreboard = []AuthorStatistics{}
 
 	const isbn = "1491956224" // "Microservice Architecture"
 	authors := bookAuthors(isbn)
@@ -38,15 +40,15 @@ func main() {
 			defer wg.Done()
 
 			numBooks, authorName := authorNumBooks(anAuthor)
-			record.author = authorName
-			record.count = numBooks
-			records = append(records, record)
+			stats.author = authorName
+			stats.count = numBooks
+			scoreboard = append(scoreboard, stats)
 		}(author)
 	}
 
 	wg.Wait()
 
-	fmt.Printf("Publishing statistics: %+v \n", records)
+	fmt.Printf("Publishing statistics: %+v \n", scoreboard)
 }
 
 /** panicHandler handles all the panics. If you need stack trace, uncomment the
@@ -94,7 +96,7 @@ func authorNumBooks(authorName string) (int, string) {
 	return int(numBooks), authorName
 }
 
-/** queryAPI an HTTP API with error handling */
+/** queryAPI queries an HTTP API, and performs error handling */
 func queryAPI(apiURL string, errHandler fnBytes) []byte {
 	res, err := http.Get(apiURL)
 	if err != nil {
