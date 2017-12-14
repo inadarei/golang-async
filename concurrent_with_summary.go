@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"sync"
 
 	"github.com/buger/jsonparser"
@@ -12,7 +13,11 @@ import (
 
 const baseURL = "https://www.googleapis.com/books/v1/volumes?q="
 
+type fnBytes func([]byte)
+
 func main() {
+	defer panicHandler()
+
 	type PublishRecord struct {
 		author string
 		count  int
@@ -29,6 +34,7 @@ func main() {
 
 	for _, author := range authors {
 		go func(anAuthor string) {
+			defer panicHandler()
 			defer wg.Done()
 
 			numBooks, authorName := authorNumBooks(anAuthor)
@@ -40,22 +46,24 @@ func main() {
 
 	wg.Wait()
 
-	fmt.Printf("Publishing records: %v \n", records)
+	fmt.Printf("Publishing statistics: %+v \n", records)
 }
 
-/* bookAuthors returns all authors of a book */
+/** panicHandler handles all the panics. If you need stack trace, uncomment the
+  corresponding line */
+func panicHandler() {
+	if r := recover(); r != nil {
+		// fmt.Printf("ERROR: %v\n\n %s", r, debug.Stack())
+		fmt.Printf("ERROR: %v \n", r)
+		os.Exit(1)
+	}
+}
+
+/** bookAuthors returns all authors of a book */
 func bookAuthors(isbn string) []string {
 	bookURL := baseURL + "isbn:" + isbn
 
-	res, err := http.Get(bookURL)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		panic(err.Error())
-	}
+	body := queryAPI(bookURL, googleAPIError)
 
 	authors := []string{}
 
@@ -65,14 +73,29 @@ func bookAuthors(isbn string) []string {
 		authors = append(authors, valueString)
 	}, "items", "[0]", "volumeInfo", "authors")
 
+	if len(authors) == 0 {
+		panic(fmt.Sprintf("no authors found for isbn: %v, with URL: %v", isbn, bookURL))
+	}
 	return authors
 }
 
-/* authorNumBooks returns number of books an author has published */
+/** authorNumBooks returns number of books an author has published */
 func authorNumBooks(authorName string) (int, string) {
 	authorNameSafe := url.QueryEscape(authorName)
 	apiURL := baseURL + "inauthor:\"" + authorNameSafe + "\""
 
+	body := queryAPI(apiURL, googleAPIError)
+
+	numBooks, err := jsonparser.GetInt(body, "totalItems")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return int(numBooks), authorName
+}
+
+/** queryAPI an HTTP API with error handling */
+func queryAPI(apiURL string, errHandler fnBytes) []byte {
 	res, err := http.Get(apiURL)
 	if err != nil {
 		panic(err.Error())
@@ -83,10 +106,18 @@ func authorNumBooks(authorName string) (int, string) {
 		panic(err.Error())
 	}
 
-	numBooks, err := jsonparser.GetInt(body, "totalItems")
+	if res.StatusCode > 399 {
+		errHandler(body)
+	}
+
+	return body
+}
+
+/** googleAPIError handles any non-OK HTTP status returns */
+func googleAPIError(body []byte) {
+	errMsg, err := jsonparser.GetString(body, "error", "message")
 	if err != nil {
 		panic(err.Error())
 	}
-
-	return int(numBooks), authorName
+	panic(fmt.Sprintf("Google Books API Response: '%s'", errMsg))
 }

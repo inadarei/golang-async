@@ -23,3 +23,11 @@
 [[constraint]]
   branch = "master"
   name = "github.com/buger/jsonparser"
+
+[[constraint]]
+  name = "github.com/davecgh/go-spew"
+  version = "1.1.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/tonnerre/golang-pretty"
