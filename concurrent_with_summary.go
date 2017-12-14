@@ -99,11 +99,10 @@ func authorNumBooks(authorName string) (int, string) {
 /** queryAPI queries an HTTP API, and performs error handling */
 func queryAPI(apiURL string, errHandler fnBytes) []byte {
 	res, err := http.Get(apiURL)
-	defer res.Body.Close()
-
 	if err != nil {
 		panic(err.Error())
 	}
+	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
